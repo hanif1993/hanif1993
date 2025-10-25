@@ -65,7 +65,7 @@ procedure(CCSTransformNetData(netData)
 procedure(_CCSFindNetRecursive(cv point)
   let((fig net newPoint)
     net = nil
-    fig = car(gePointToFig(cv point))
+    fig = car(lePointToFig(cv point))
     if(fig then
       if(fig~>net then
         net = fig~>net
@@ -188,7 +188,7 @@ procedure(CCSSubmitNetInfoFormCB(form)
 )
 
 procedure(CCSRunNetInfo()
-  if( !boundp('CCSNetInfoForm) || !hiIsForm(CCSNetInfoForm) || (CCSNetInfoForm->window == nil) then
+  if( !boundp('CCSNetInfoForm) || CCSNetInfoForm->window == nil then
     CCSCreateNetInfoForm()
     hiDisplayForm(CCSNetInfoForm)
   else
