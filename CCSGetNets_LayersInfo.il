@@ -188,7 +188,7 @@ procedure(CCSSubmitNetInfoFormCB(form)
 )
 
 procedure(CCSRunNetInfo()
-  if( !boundp('CCSNetInfoForm) || !hiIsForm(CCSNetInfoForm) || !hiIsValidWindow(get(CCSNetInfoForm 'window)) then
+  if( !boundp('CCSNetInfoForm) || !hiIsForm(CCSNetInfoForm) || (CCSNetInfoForm->window == nil) then
     CCSCreateNetInfoForm()
     hiDisplayForm(CCSNetInfoForm)
   else
