@@ -80,6 +80,18 @@ procedure(_CCSFindNetRecursive(cv point)
   )
 )
 
+procedure(_CCSRemoveDuplicates(inList)
+  let((outList)
+    outList = nil
+    foreach(item inList
+      unless(member(item outList)
+        outList = cons(item outList)
+      )
+    )
+    reverse(outList)
+  )
+)
+
 procedure( CCSGetNets_LayersInfo(@optional (Signames nil) (startLvl 0) (stopLvl 0) (InfoCoords nil) (CreateCVs nil) (LogFile "./CCSGetNets_LayersInfo.txt") )
   let((outPort win result print_lines print_line transformedData)
 
@@ -147,7 +159,6 @@ procedure( CCSCreateNetInfoForm()
 
 procedure(CCSSelectNets()
   let((selectedNets)
-    hiUnmanageWindow(CCSNetInfoForm->window)
     geSelectFig(nil)
     enterPoints(
       ?prompts '("Select shapes to get net names from. Press DONE when finished.")
@@ -170,8 +181,7 @@ procedure(CCSProcessSelectedNets(done points)
     if(currentNames && currentNames != "" then
       netNames = nconc(parseString(currentNames " ") netNames)
     )
-    CCSNetInfoForm->netNames->value = buildString(sort(removeDuplicates(netNames) nil) " ")
-    hiManageWindow(CCSNetInfoForm->window)
+    CCSNetInfoForm->netNames->value = buildString(sort(_CCSRemoveDuplicates(netNames) nil) " ")
   )
 )
 
@@ -180,7 +190,7 @@ procedure(CCSSubmitNetInfoFormCB(form)
     netNameString = form->netNames->value
     when( netNameString && netNameString != ""
       netNameList = parseString(netNameString " ")
-      uniqueNetList = removeDuplicates(netNameList)
+      uniqueNetList = _CCSRemoveDuplicates(netNameList)
       CCSGetNets_LayersInfo(uniqueNetList)
     )
     hiFormDone(form)
