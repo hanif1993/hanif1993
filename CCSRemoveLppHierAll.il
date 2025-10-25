@@ -48,7 +48,11 @@ let((uniqueModifiedCVs cellNames)
   uniqueModifiedCVs = CCSRemoveDuplicateElem(opencv)
 
   if(uniqueModifiedCVs then
-    cellNames = mapcar(cv uniqueModifiedCVs cv~>cellName)
+    cellNames = nil
+    foreach(cv uniqueModifiedCVs
+      cellNames = cons(cv~>cellName cellNames)
+    )
+    cellNames = reverse(cellNames)
     hiDisplayAppDBox(
       ?name 'CCSModifiedCellsDBox
       ?dboxBanner "List of Modified Cells"
