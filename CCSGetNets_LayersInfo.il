@@ -62,6 +62,24 @@ procedure(CCSTransformNetData(netData)
   )
 )
 
+procedure(_CCSFindNetRecursive(cv point)
+  let((fig net newPoint)
+    net = nil
+    fig = car(gePointToFig(cv point))
+    if(fig then
+      if(fig~>net then
+        net = fig~>net
+      else
+        if(fig~>objType == "inst" then
+          newPoint = dbTransformPoint(point dbInvertTransform(fig~>transform))
+          net = _CCSFindNetRecursive(fig~>master newPoint)
+        )
+      )
+    )
+    net
+  )
+)
+
 procedure( CCSGetNets_LayersInfo(@optional (Signames nil) (startLvl 0) (stopLvl 0) (InfoCoords nil) (CreateCVs nil) (LogFile "./CCSGetNets_LayersInfo.txt") )
   let((outPort win result print_lines print_line transformedData)
 
@@ -129,7 +147,7 @@ procedure( CCSCreateNetInfoForm()
 
 procedure(CCSSelectNets()
   let((selectedNets)
-    hiSetVisible(CCSNetInfoForm nil)
+    hiUnmanageWindow(CCSNetInfoForm->window)
     geSelectFig(nil)
     enterPoints(
       ?prompts '("Select shapes to get net names from. Press DONE when finished.")
@@ -139,11 +157,11 @@ procedure(CCSSelectNets()
 )
 
 procedure(CCSProcessSelectedNets(done points)
-  let((netNames currentNames windowId net)
+  let((netNames currentNames windowId net cv)
     netNames = nil
-    windowId = hiGetCurrentWindow()
+    cv = geGetWindowCellView()
     foreach(point points
-      net = geFindNetByPoint(windowId point)
+      net = _CCSFindNetRecursive(cv point)
       when(net
         netNames = adjoin(net~>name netNames)
       )
@@ -153,7 +171,7 @@ procedure(CCSProcessSelectedNets(done points)
       netNames = nconc(parseString(currentNames " ") netNames)
     )
     CCSNetInfoForm->netNames->value = buildString(sort(removeDuplicates(netNames) nil) " ")
-    hiSetVisible(CCSNetInfoForm t)
+    hiManageWindow(CCSNetInfoForm->window)
   )
 )
 
@@ -170,7 +188,7 @@ procedure(CCSSubmitNetInfoFormCB(form)
 )
 
 procedure(CCSRunNetInfo()
-  if( !boundp('CCSNetInfoForm) || hiIsForm(CCSNetInfoForm) == nil then
+  if( !boundp('CCSNetInfoForm) || !hiIsForm(CCSNetInfoForm) || !hiIsValidWindow(get(CCSNetInfoForm 'window)) then
     CCSCreateNetInfoForm()
     hiDisplayForm(CCSNetInfoForm)
   else
