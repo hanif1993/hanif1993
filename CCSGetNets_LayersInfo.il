@@ -159,7 +159,7 @@ procedure( CCSCreateNetInfoForm()
 
 procedure(CCSSelectNets()
   let((selectedNets)
-    geSelectFig(nil)
+    geDeselectAll()
     enterPoints(
       ?prompts '("Select shapes to get net names from. Press DONE when finished.")
       ?doneProc "CCSProcessSelectedNets"
