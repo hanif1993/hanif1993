@@ -56,8 +56,7 @@ let((uniqueModifiedCVs cellNames)
     hiDisplayAppDBox(
       ?name 'CCSModifiedCellsDBox
       ?dboxBanner "List of Modified Cells"
-      ?dboxText "The following cells have been modified:"
-      ?items cellNames
+      ?dboxText strcat("The following cells have been modified:\n\n" buildString(cellNames "\n"))
       ?buttons '("OK")
     )
   else
