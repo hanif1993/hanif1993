@@ -45,42 +45,61 @@ netTable
 );let
 );procedure
 
-procedure( CCSGetNets_LayersInfo(@optional (Signames nil) (startLvl 0) (stopLvl 0) (InfoCoords nil) (CreateCVs nil) (LogFile "./CCSGetNets_LayersInfo.txt") )
-let((outPort win result print_lines print_line)
-
-outPort=outfile(LogFile)
-poport=outPort
-woport=outPort
-errport=outPort
-
-win=hiGetCurrentWindow()
-
-foreach( sig Signames
-result=CCSGetNetTracedInfo(win sig startLvl stopLvl CreateCVs)
-print_line=sprintf(nil "Net:%s" sig)
-print_lines = append1(print_lines print_line)
-foreach(key_layer result~>?
-if(InfoCoords then
-print_line=sprintf(nil " %s on (%s %s) at %L\tTotalShapes:%L" nth(3 parseString(key_layer "_")) cadr(parseString(key_layer "_")) caddr(parseString(key_layer "_")) result[key_layer] length(result[key_layer]) )
-else
-print_line=sprintf(nil " %s on (%s %s)\tTotalShapes:%L" nth(3 parseString(key_layer "_")) cadr(parseString(key_layer "_")) caddr(parseString(key_layer "_")) length(result[key_layer]) )
-);if
-print_lines = append1(print_lines print_line)
-);foreach key_layer
-);foreach sig
-poport=stdout
-errport=stderr
-woport=stdout
-
-foreach(tmp print_lines
-printf("%s\n" tmp)
-fprintf(outPort "%s\n" tmp)
+procedure(CCSTransformNetData(netData)
+  let((layerTable layer purpose shapeType)
+    layerTable = makeTable('layerTable)
+    foreach(key netData~>?
+      keyParts = parseString(key "_")
+      layer = cadr(keyParts)
+      purpose = caddr(keyParts)
+      shapeType = nth(3 keyParts)
+      unless(isTable(layerTable[layer])
+        layerTable[layer] = makeTable('purposeTable)
+      )
+      layerTable[layer][sprintf(nil "%s %s" purpose shapeType)] = length(netData[key])
+    )
+    layerTable
+  )
 )
-fprintf(outPort "Processed %L number of Nets\n" length(Signames))
-close(outPort)
 
-printf("Processed %L number of Nets\n" length(Signames))
-);let
+procedure( CCSGetNets_LayersInfo(@optional (Signames nil) (startLvl 0) (stopLvl 0) (InfoCoords nil) (CreateCVs nil) (LogFile "./CCSGetNets_LayersInfo.txt") )
+  let((outPort win result print_lines print_line transformedData)
+
+    outPort=outfile(LogFile)
+    poport=outPort
+    woport=outPort
+    errport=outPort
+
+    win=hiGetCurrentWindow()
+
+    foreach( sig Signames
+      result=CCSGetNetTracedInfo(win sig startLvl stopLvl CreateCVs)
+      transformedData = CCSTransformNetData(result)
+      print_line=sprintf(nil "Net: %s" sig)
+      print_lines = append1(print_lines print_line)
+
+      foreach(layer sort(transformedData->? nil)
+        print_line = sprintf(nil "  Layer: %s" layer)
+        print_lines = append1(print_lines print_line)
+        foreach(purposeShape sort(transformedData[layer]->? nil)
+          print_line = sprintf(nil "    - %s: %d shapes" purposeShape transformedData[layer][purposeShape])
+          print_lines = append1(print_lines print_line)
+        )
+      )
+    );foreach sig
+    poport=stdout
+    errport=stderr
+    woport=stdout
+
+    foreach(tmp print_lines
+      printf("%s\n" tmp)
+      fprintf(outPort "%s\n" tmp)
+    )
+    fprintf(outPort "Processed %L number of Nets\n" length(Signames))
+    close(outPort)
+
+    printf("Processed %L number of Nets\n" length(Signames))
+  );let
 );procedure
 
 procedure( CCSCreateNetInfoForm()
@@ -120,28 +139,31 @@ procedure(CCSSelectNets()
 )
 
 procedure(CCSProcessSelectedNets(done points)
-  let((netNames currentNames)
+  let((netNames currentNames windowId net)
     netNames = nil
-    foreach(fig geGetSelSet()
-      when(fig~>net
-        netNames = adjoin(fig~>net~>name netNames)
+    windowId = hiGetCurrentWindow()
+    foreach(point points
+      net = geFindNetByPoint(windowId point)
+      when(net
+        netNames = adjoin(net~>name netNames)
       )
     )
     currentNames = CCSNetInfoForm->netNames->value
     if(currentNames && currentNames != "" then
       netNames = nconc(parseString(currentNames " ") netNames)
     )
-    CCSNetInfoForm->netNames->value = buildString(sort(netNames nil) " ")
+    CCSNetInfoForm->netNames->value = buildString(sort(removeDuplicates(netNames) nil) " ")
     hiSetVisible(CCSNetInfoForm t)
   )
 )
 
 procedure(CCSSubmitNetInfoFormCB(form)
-  let((netNameString netNameList)
+  let((netNameString netNameList uniqueNetList)
     netNameString = form->netNames->value
     when( netNameString && netNameString != ""
       netNameList = parseString(netNameString " ")
-      CCSGetNets_LayersInfo(netNameList)
+      uniqueNetList = removeDuplicates(netNameList)
+      CCSGetNets_LayersInfo(uniqueNetList)
     )
     hiFormDone(form)
   )
